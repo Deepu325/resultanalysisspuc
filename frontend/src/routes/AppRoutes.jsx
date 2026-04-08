@@ -11,8 +11,9 @@ import { Login } from '../auth/Login'
 import { UploadPage } from '../pages/Upload'
 import Dashboard from '../pages/Dashboard'
 import ToppersPage from '../pages/Toppers'
-import SectionsPage from '../pages/Sections'
+import SectionPerformancePage from '../pages/SectionPerformancePage'
 import SubjectsPage from '../pages/Subjects'
+import { StudentPerformancePage } from '../pages/StudentPerformance'
 
 /**
  * Protected Route Wrapper
@@ -49,11 +50,15 @@ export const routes = [
   },
   {
     path: '/sections',
-    element: <ProtectedRoute><SectionsPage /></ProtectedRoute>
+    element: <ProtectedRoute><SectionPerformancePage /></ProtectedRoute>
   },
   {
     path: '/subjects',
     element: <ProtectedRoute><SubjectsPage /></ProtectedRoute>
+  },
+  {
+    path: '/students',
+    element: <ProtectedRoute><StudentPerformancePage /></ProtectedRoute>
   },
   {
     path: '/',

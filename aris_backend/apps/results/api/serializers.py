@@ -73,6 +73,7 @@ class TopperSerializer(serializers.Serializer):
     student_name = serializers.CharField(allow_blank=True, allow_null=True, default='N/A')
     stream = serializers.CharField(allow_blank=True, allow_null=True)
     section = serializers.CharField(allow_blank=True, allow_null=True)
+    language = serializers.CharField(allow_blank=True, allow_null=True, required=False)
     marks = serializers.FloatField(required=False, allow_null=True)  # grand_total
     percentage = serializers.FloatField()
     class_name = serializers.CharField(source='result_class', allow_blank=True)
@@ -168,6 +169,32 @@ class SubjectAnalysisSerializer(serializers.Serializer):
 
 
 # ===== UPLOAD & QUALITY SERIALIZERS =====
+
+# ===== STUDENT PERFORMANCE TABLE SERIALIZER =====
+
+class StudentPerformanceTableSerializer(serializers.Serializer):
+    """
+    Serializer for Student Performance Table API
+    
+    Returns individual student data with subject-wise marks, totals, and classification.
+    Designed for pagination and filtering in the frontend table component.
+    """
+    id = serializers.IntegerField()
+    reg_no = serializers.CharField()
+    name = serializers.CharField(source='student_name', allow_blank=True)
+    section = serializers.CharField(allow_blank=True, allow_null=True)
+    stream = serializers.CharField()
+    subjects = serializers.SerializerMethodField()
+    total = serializers.FloatField(source='grand_total')
+    percentage = serializers.FloatField()
+    result_class = serializers.CharField()
+    
+    def get_subjects(self, obj):
+        """Extract subject marks from JSON field, handle missing marks"""
+        subject_marks = obj.subject_marks_data or {}
+        # Return dict with all subjects; missing ones are shown as None in frontend
+        return {k: v if v is not None else None for k, v in subject_marks.items()}
+
 
 class UploadLogSerializer(serializers.ModelSerializer):
     quality_metrics = serializers.SerializerMethodField()
@@ -289,3 +316,108 @@ class ExportResponseSerializer(serializers.Serializer):
     file_size_bytes = serializers.IntegerField()
     generated_at = serializers.DateTimeField()
     expires_in_seconds = serializers.IntegerField(required=False)
+
+
+# ===== SECTION DATA TRANSFORMATION SERIALIZERS =====
+
+class SectionDataSerializer(serializers.Serializer):
+    """
+    Serializer for transformed section data.
+    
+    Validates and serializes section performance metrics from row-based Excel data.
+    
+    Schema:
+    - section: Section name (e.g., "PCMB A")
+    - stream: "Science" or "Commerce"
+    - enrolled: Total enrolled count (int)
+    - absent: Total absent count (int)
+    - appeared: Total appeared count (int)
+    - distinction: Students with distinction (int)
+    - first_class: Students with first class (int)
+    - second_class: Students with second class (int)
+    - pass_class: Students with pass class (int)
+    - detained: Students detained (int)
+    - promoted: Students promoted (int)
+    - pass_percentage: Pass percentage (float, 0-100)
+    """
+    section = serializers.CharField(
+        help_text="Section name (e.g., PCMB A)"
+    )
+    stream = serializers.ChoiceField(
+        choices=["Science", "Commerce"],
+        help_text="Stream assignment based on section"
+    )
+    enrolled = serializers.IntegerField(
+        min_value=0,
+        help_text="Total enrolled students"
+    )
+    absent = serializers.IntegerField(
+        min_value=0,
+        help_text="Total absent students"
+    )
+    appeared = serializers.IntegerField(
+        min_value=0,
+        help_text="Total appeared students"
+    )
+    distinction = serializers.IntegerField(
+        min_value=0,
+        help_text="Students with distinction"
+    )
+    first_class = serializers.IntegerField(
+        min_value=0,
+        help_text="Students with first class"
+    )
+    second_class = serializers.IntegerField(
+        min_value=0,
+        help_text="Students with second class"
+    )
+    pass_class = serializers.IntegerField(
+        min_value=0,
+        help_text="Students with pass class"
+    )
+    detained = serializers.IntegerField(
+        min_value=0,
+        help_text="Students detained"
+    )
+    promoted = serializers.IntegerField(
+        min_value=0,
+        help_text="Students promoted"
+    )
+    pass_percentage = serializers.FloatField(
+        min_value=0.0,
+        max_value=100.0,
+        help_text="Pass percentage (0-100)"
+    )
+    
+    def validate(self, data):
+        """Validate data consistency"""
+        # Check that class counts don't exceed appeared
+        class_total = (
+            data['distinction'] + data['first_class'] +
+            data['second_class'] + data['pass_class']
+        )
+        if class_total > data['appeared']:
+            raise serializers.ValidationError(
+                f"Sum of classes ({class_total}) cannot exceed appeared ({data['appeared']})"
+            )
+        
+        return data
+
+
+class SectionDataResponseSerializer(serializers.Serializer):
+    """Response format for section data transformation"""
+    status = serializers.CharField(
+        default="success",
+        help_text="Response status (success/error)"
+    )
+    data = SectionDataSerializer(many=True, help_text="Array of 12 section objects")
+    count = serializers.IntegerField(help_text="Number of sections (must be 12)")
+    errors = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="List of validation errors (empty if success)"
+    )
+    validation_summary = serializers.JSONField(
+        required=False,
+        help_text="Summary of validation results"
+    )

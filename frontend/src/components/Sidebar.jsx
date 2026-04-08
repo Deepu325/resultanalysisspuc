@@ -4,7 +4,7 @@
 
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Upload, BarChart3, Users, Grid, BookOpen, LogOut } from 'lucide-react'
+import { Upload, BarChart3, Users, Grid, BookOpen, LogOut, GraduationCap } from 'lucide-react'
 import { useAuth } from '../auth/authContext'
 import { useStore } from '../store/store'
 
@@ -21,6 +21,7 @@ export const Sidebar = () => {
     { path: '/toppers', label: 'Toppers', icon: Users, requiresUpload: true },
     { path: '/sections', label: 'Sections', icon: Grid, requiresUpload: true },
     { path: '/subjects', label: 'Subjects', icon: BookOpen, requiresUpload: true },
+    { path: '/students', label: 'Students', icon: GraduationCap, requiresUpload: true },
   ]
 
   return (

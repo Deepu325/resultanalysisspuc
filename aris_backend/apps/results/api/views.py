@@ -25,6 +25,7 @@ from apps.results.models import StudentResult, UploadLog, AnalyticsSnapshot
 from apps.results.api.serializers import (
     StudentResultSerializer,
     UploadLogSerializer,
+    StudentPerformanceTableSerializer,
 )
 from apps.results.services.analyzer import process_upload
 from apps.results.services.analytics import compute_analytics
@@ -854,3 +855,112 @@ class StreamAnalyticsView(APIView):
         http_status = status.HTTP_200_OK if analytics['status'] == 'success' else status.HTTP_400_BAD_REQUEST
         
         return Response(analytics, status=http_status)
+
+
+# ===== STUDENT PERFORMANCE TABLE =====
+
+class StudentPerformanceView(APIView):
+    """
+    GET /api/students/
+    
+    Returns: Individual student data with subject-wise marks, totals, and classification.
+    
+    Query Parameters:
+    - stream: SCIENCE/COMMERCE (filter by stream)
+    - section: Section name (filter by section)
+    - result_class: DISTINCTION/FIRST_CLASS/SECOND_CLASS/PASS/FAIL (filter by classification)
+    - search: Student name (search by student name)
+    - limit: Number of records per page (default: 50, max: 500)
+    - offset: Pagination offset (default: 0)
+    
+    Response: Paginated list of students with their performance data
+    """
+
+    @track_performance
+    def get(self, request):
+        """Fetch student list with filtering and pagination"""
+        try:
+            start_time = time.time()
+            
+            # Get filter parameters
+            stream = request.query_params.get('stream', '').upper()
+            section = request.query_params.get('section', '').strip()
+            result_class = request.query_params.get('result_class', '').upper()
+            search = request.query_params.get('search', '').strip()
+            
+            # Get pagination parameters
+            limit = min(int(request.query_params.get('limit', 50)), 500)
+            offset = int(request.query_params.get('offset', 0))
+            
+            # Build base queryset
+            queryset = StudentResult.objects.all()
+            
+            # Apply filters
+            if stream and stream in ['SCIENCE', 'COMMERCE']:
+                queryset = queryset.filter(stream=stream)
+            
+            if section:
+                queryset = queryset.filter(section__icontains=section)
+            
+            if result_class and result_class in ['DISTINCTION', 'FIRST_CLASS', 'SECOND_CLASS', 'PASS', 'FAIL', 'INCOMPLETE']:
+                queryset = queryset.filter(result_class=result_class)
+            
+            if search:
+                queryset = queryset.filter(student_name__icontains=search)
+            
+            # Get total count before pagination
+            total_count = queryset.count()
+            
+            # Apply pagination
+            paginated_queryset = queryset.order_by('-grand_total')[offset:offset+limit]
+            
+            # Serialize data
+            serializer = StudentPerformanceTableSerializer(paginated_queryset, many=True)
+            
+            # Get available sections and subjects for filter dropdowns
+            section_qs = StudentResult.objects.all()
+            if stream:
+                section_qs = section_qs.filter(stream=stream)
+            all_sections = list(section_qs.values_list('section', flat=True).distinct().order_by('section'))
+            
+            # Get all possible result classes
+            result_classes = ['DISTINCTION', 'FIRST_CLASS', 'SECOND_CLASS', 'PASS', 'FAIL']
+            
+            response_time_ms = int((time.time() - start_time) * 1000)
+            
+            return Response({
+                "status": "success",
+                "data": serializer.data,
+                "pagination": {
+                    "total": total_count,
+                    "limit": limit,
+                    "offset": offset,
+                    "returned": len(serializer.data),
+                    "has_next": offset + limit < total_count
+                },
+                "filters": {
+                    "streams": ['SCIENCE', 'COMMERCE'],
+                    "sections": all_sections,
+                    "result_classes": result_classes,
+                    "active_filters": {
+                        "stream": stream or None,
+                        "section": section or None,
+                        "result_class": result_class or None,
+                        "search": search or None,
+                    }
+                },
+                "cache_info": {
+                    "was_cached": False,
+                    "response_time_ms": response_time_ms,
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except (ValueError, TypeError) as e:
+            return build_error_response(
+                APIError(f"Invalid parameters: {str(e)}", code="INVALID_PARAMS", status_code=status.HTTP_400_BAD_REQUEST)
+            )
+        except Exception as e:
+            return build_error_response(
+                APIError(f"Failed to fetch students: {str(e)}", code="STUDENTS_FETCH_ERROR", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            )
+

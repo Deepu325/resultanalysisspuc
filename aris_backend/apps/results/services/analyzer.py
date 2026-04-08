@@ -114,6 +114,13 @@ def process_upload(file, upload_log=None):
                     subject_name = col.replace('marks_', '').replace('_', ' ').upper()
                     subject_marks[subject_name] = float(value)
             
+            # Extract language (K/H/S)
+            language_val = None
+            if 'language' in row and pd.notna(row.get('language')):
+                lang = str(row.get('language')).strip().upper()
+                if lang in ['K', 'H', 'S']:
+                    language_val = lang
+            
             obj, created = StudentResult.objects.update_or_create(
                 reg_no=row["reg_no"],
                 defaults={
@@ -124,6 +131,7 @@ def process_upload(file, upload_log=None):
                     "grand_total": row.get("grand_total"),
                     "result_class": row.get("result_class", "INCOMPLETE"),
                     "subject_marks_data": subject_marks,
+                    "language": language_val,
                     "data_completeness_score": row.get("data_completeness_score", 0),
                     "percentage_was_filled": quality_metrics["missing_percentage_filled"] > 0,
                     "data_version": "v1.0",  # PRODUCTION: Set versioning

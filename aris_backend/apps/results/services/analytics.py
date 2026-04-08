@@ -62,6 +62,13 @@ class TopperDataCleaner:
         if include_rank and 'rank' in row and pd.notna(row.get('rank')):
             cleaned['rank'] = int(row.get('rank', 0))
         
+        # Add language (K/H/S) if available
+        if pd.notna(row.get('language')) and row.get('language'):
+            lang_value = str(row.get('language')).strip().upper()
+            if lang_value in ['K', 'H', 'S']:
+                language_map = {'K': 'Kannada', 'H': 'Hindi', 'S': 'Sanskrit'}
+                cleaned['language'] = language_map.get(lang_value, lang_value)
+        
         # Add subject marks if available
         if pd.notna(row.get('subject_marks_data')) and row.get('subject_marks_data'):
             cleaned['subject_marks'] = row.get('subject_marks_data')

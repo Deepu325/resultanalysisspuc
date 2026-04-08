@@ -48,6 +48,18 @@ class StudentResult(models.Model):
     # Subject marks (JSON field to store all subject scores)
     subject_marks_data = models.JSONField(default=dict, blank=True)
     
+    # Language choice (K/H/S - Kannada/Hindi/Sanskrit)
+    language = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        choices=[
+            ('K', 'Kannada'),
+            ('H', 'Hindi'),
+            ('S', 'Sanskrit'),
+        ]
+    )
+    
     # Data quality tracking
     data_completeness_score = models.IntegerField(default=0)
     was_duplicate = models.BooleanField(default=False)

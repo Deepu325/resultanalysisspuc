@@ -74,9 +74,9 @@ export const TopperCard = ({ topper, rank, showRank = true }) => {
 
       {/* Student Details */}
       <div className="px-6 py-4 space-y-3">
-        {/* Stream & Section */}
-        {(topper.stream || topper.section) && (
-          <div className="flex justify-between items-center">
+        {/* Stream & Section & Language */}
+        {(topper.stream || topper.section || topper.language) && (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {topper.stream && (
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wide">Stream</p>
@@ -87,6 +87,12 @@ export const TopperCard = ({ topper, rank, showRank = true }) => {
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wide">Section</p>
                 <p className="font-semibold text-gray-800">{topper.section}</p>
+              </div>
+            )}
+            {topper.language && (
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Language</p>
+                <p className="font-semibold text-gray-800">{topper.language}</p>
               </div>
             )}
           </div>
@@ -101,10 +107,10 @@ export const TopperCard = ({ topper, rank, showRank = true }) => {
             {/* Subject Marks */}
             {topper.subject_marks && Object.keys(topper.subject_marks).length > 0 && (
               <div className="border-t border-blue-200 pt-2">
-                <p className="text-xs font-semibold text-gray-600 uppercase mb-1">Subjects</p>
-                <div className="grid grid-cols-3 gap-1">
-                  {Object.entries(topper.subject_marks).slice(0, 6).map(([subject, marks]) => (
-                    <div key={subject} className="text-center p-1">
+                <p className="text-xs font-semibold text-gray-600 uppercase mb-2">Subjects ({Object.keys(topper.subject_marks).length})</p>
+                <div className="grid gap-1" style={{gridTemplateColumns: `repeat(auto-fit, minmax(80px, 1fr))`}}>
+                  {Object.entries(topper.subject_marks).map(([subject, marks]) => (
+                    <div key={subject} className="text-center p-1.5 bg-white rounded border border-blue-100">
                       <p className="text-xs text-gray-600 truncate font-medium">{subject}</p>
                       <p className="text-sm font-bold text-blue-600">{marks}</p>
                     </div>

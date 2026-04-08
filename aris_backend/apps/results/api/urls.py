@@ -13,6 +13,13 @@ ANALYTICS FLOW:
   GET /api/sections/{upload_id}/ → Sections from Snapshot
   GET /api/subjects/{upload_id}/ → Subjects from Snapshot
 
+SECTION PERFORMANCE (NEW):
+  POST /api/sections/transform/ → Transform row-based metrics to sections
+  GET /api/sections/sample/ → Get sample data and transformation
+
+STUDENT PERFORMANCE TABLE (NEW):
+  GET /api/students/ → List students with filtering, pagination, and subject marks
+
 EXPORT FLOW:
   GET /api/export/excel/{upload_id}/ → Excel file
 
@@ -25,10 +32,23 @@ LEGACY (Backward Compatible):
 
 from django.urls import path
 from apps.results.api import views
+from apps.results.api.section_views import SectionTransformView, SectionSampleDataView
+from apps.results.api.heatmap_views import HeatmapDataView, HeatmapSampleView
 
 urlpatterns = [
     # ===== UPLOAD (ENTRY POINT) =====
     path("upload/", views.UploadView.as_view(), name="upload"),
+    
+    # ===== STUDENT PERFORMANCE TABLE (NEW) =====
+    path("students/", views.StudentPerformanceView.as_view(), name="students"),
+    
+    # ===== SECTION PERFORMANCE TRANSFORMATION (NEW) =====
+    path("sections/transform/", SectionTransformView.as_view(), name="section-transform"),
+    path("sections/sample/", SectionSampleDataView.as_view(), name="section-sample"),
+    
+    # ===== HEATMAP DATA (SECTION × SUBJECT ANALYSIS) =====
+    path("heatmap/", HeatmapDataView.as_view(), name="heatmap"),
+    path("heatmap/sample/", HeatmapSampleView.as_view(), name="heatmap-sample"),
     
     # ===== ANALYTICS ENDPOINTS (NEW) =====
     path("analytics/<int:upload_id>/", views.AnalyticsView.as_view(), name="analytics-detail"),
