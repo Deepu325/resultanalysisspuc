@@ -578,7 +578,11 @@ class UploadHistoryView(APIView):
         """Fetch all upload logs"""
         logs = UploadLog.objects.all().order_by("-uploaded_at")
         serializer = UploadLogSerializer(logs, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({
+            "status": "success",
+            "data": serializer.data,
+            "count": logs.count()
+        }, status=status.HTTP_200_OK)
 
 
 class StatsView(APIView):
